@@ -2,12 +2,19 @@ library(jsonlite)
 library(dplyr)
 library(tidyr)
 library(purrr)
+library()
 
-shot_events <- fromJSON("events/events_European_Championship.json") %>%
+shot_events <- fromJSON("C:/Users/Izan Ahmed/Downloads/DataScienceFinal/xG-model/events/events_European_Championship.json") %>%
   filter(eventId == 10)
 
 
-shot_tags <- select(shot_events, tags, positions, playerId) %>%
+players <- fromJSON("C:/Users/Izan Ahmed/Downloads/DataScienceFinal/xG-model/players.json") %>% 
+  select(wyId, foot, lastName)
+
+
+
+
+shot_tags <- select(shot_events, tags, positions, playerId, matchId, eventSec) %>%
   unnest_wider(tags) %>%
   unnest_wider(positions) %>%
   unnest_wider(id, names_sep = "") %>%
@@ -27,21 +34,68 @@ shot_tags[is.na(shot_tags)] <- 0
 shot_tags <- filter(shot_tags, is_blocked == 0) %>%
   select(-is_blocked)
 
+players$playerId <- players$wyId
+
+shot_tags <- inner_join(shot_tags, players, by="playerId")
+
+shot_tags$wyId <- NULL
+
 # Convert x, y coordinates to metres
-shot_tags[c("x1")] <- (shot_tags[c("x1")]/100) * 105
-shot_tags[c("y1")] <- (shot_tags[c("y1")]/100) * 68
+shot_tags$x1 <- (shot_tags$x1/100) * 105
+shot_tags$y1 <- (shot_tags$y1/100) * 68
 
 # Positions of goalposts from bottom right of the pitch
 post1_pos <- 30.34
 post2_pos <- 37.66
 
 # Compute distances to each goalpost
-shot_tags$distance_to_goal1 <- sqrt((105 - shot_tags[c("x1")])^2 + (post1_pos - shot_tags[c("y1")])^2)
-shot_tags$distance_to_goal2 <- sqrt((105 - shot_tags[c("x1")])^2 + (post2_pos - shot_tags[c("y1")])^2)
+shot_tags$distance_to_post1 <- sqrt((105 - (shot_tags$x1))^2 + (post1_pos - (shot_tags$y1))^2)
+shot_tags$distance_to_post2 <- sqrt((105 - (shot_tags$x1))^2 + (post2_pos - (shot_tags$y1))^2)
+
+shot_tags$distance_to_goal_center <- sqrt((105 - (shot_tags$x1))^2 + (34 - (shot_tags$y1))^2)
 
 # Compute the angle between the player and goalposts
-shot_tags$angle_to_goal <- acos((shot_tags$distance_to_goal2^2 + shot_tags$distance_to_goal1^2 - 7.32^2)/(2*shot_tags$distance_to_goal1*shot_tags$distance_to_goal2)) * 180/pi
+shot_tags$angle_to_goal <- acos((shot_tags$distance_to_post2^2 + 
+                                   shot_tags$distance_to_post1^2 - 7.32^2)/(2*shot_tags$distance_to_post1*shot_tags$distance_to_post2)) * (180/pi)
 
-logistic <- glm(is_goal ~ ., data = shot_tags, family = "binomial")
 
-logistic$coefficients
+shot_tags$is_dominant <- ifelse((shot_tags$is_left == 1 & shot_tags$foot == "left") | 
+                                  (shot_tags$is_right == 1 & shot_tags$foot == "right"), 1, 0)
+
+
+# shot_tags$lastName <- NULL
+shot_tags$foot <- NULL
+# shot_tags$playerId <- NULL
+
+
+new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal)
+
+
+logistic <- glm(is_goal ~ ., data = new_shots, family = "binomial")
+
+logit <- logistic$coefficients
+
+predicted_data <- data.frame(probability_of_goal=logistic$fitted.values, is_goal=new_shots$is_goal)
+predicted_data$distance <- new_shots$distance_to_goal_center
+predicted_data$matchId <- shot_tags$matchId
+predicted_data$lastName <- shot_tags$lastName
+predicted_data$eventSec <- shot_tags$eventSec
+ 
+predicted_data <- predicted_data[order(predicted_data$probability_of_goal, decreasing = FALSE),]
+
+predicted_data$rank <- 1:nrow(predicted_data)
+
+library(ggplot2)
+
+ggplot(data=predicted_data, aes(x=rank, y=probability_of_goal)) + geom_point(aes(color=is_goal), alpha=1, shape=4, stroke=2)+
+  xlab("Rows Index")+
+  ylab("Predicted Probability of scoring a goal")
+
+
+
+# print(logit)
+# 
+# odds <- exp(logit)
+# prob <- odds / (1+odds)
+
+
