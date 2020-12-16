@@ -1,14 +1,14 @@
 library(jsonlite)
 library(dplyr)
 library(tidyr)
-library(purrr)
-library()
+library(ggsoccer)
+library(ggplot2)
 
-shot_events <- fromJSON("C:/Users/Izan Ahmed/Downloads/DataScienceFinal/xG-model/events/events_European_Championship.json") %>%
+shot_events <- fromJSON("events/events_England.json") %>%
   filter(eventId == 10)
 
 
-players <- fromJSON("C:/Users/Izan Ahmed/Downloads/DataScienceFinal/xG-model/players.json") %>% 
+players <- fromJSON("players.json") %>% 
   select(wyId, foot, lastName)
 
 
@@ -40,6 +40,9 @@ shot_tags <- inner_join(shot_tags, players, by="playerId")
 
 shot_tags$wyId <- NULL
 
+shot_tags$x_wyscout <- shot_tags$x1
+shot_tags$y_wyscout <- shot_tags$y1
+
 # Convert x, y coordinates to metres
 shot_tags$x1 <- (shot_tags$x1/100) * 105
 shot_tags$y1 <- (shot_tags$y1/100) * 68
@@ -58,6 +61,8 @@ shot_tags$distance_to_goal_center <- sqrt((105 - (shot_tags$x1))^2 + (34 - (shot
 shot_tags$angle_to_goal <- acos((shot_tags$distance_to_post2^2 + 
                                    shot_tags$distance_to_post1^2 - 7.32^2)/(2*shot_tags$distance_to_post1*shot_tags$distance_to_post2)) * (180/pi)
 
+# Come back to this to figure out why we have a NaN
+shot_tags <- filter(shot_tags, !is.nan(angle_to_goal))
 
 shot_tags$is_dominant <- ifelse((shot_tags$is_left == 1 & shot_tags$foot == "left") | 
                                   (shot_tags$is_right == 1 & shot_tags$foot == "right"), 1, 0)
@@ -70,32 +75,27 @@ shot_tags$foot <- NULL
 
 new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal)
 
-
 logistic <- glm(is_goal ~ ., data = new_shots, family = "binomial")
 
 logit <- logistic$coefficients
 
-predicted_data <- data.frame(probability_of_goal=logistic$fitted.values, is_goal=new_shots$is_goal)
+predicted_data <- data.frame(probability_of_goal=logistic$fitted.values, is_goal=new_shots$is_goal[1:6178])
 predicted_data$distance <- new_shots$distance_to_goal_center
 predicted_data$matchId <- shot_tags$matchId
 predicted_data$lastName <- shot_tags$lastName
 predicted_data$eventSec <- shot_tags$eventSec
- 
-predicted_data <- predicted_data[order(predicted_data$probability_of_goal, decreasing = FALSE),]
+predicted_data$angle <- shot_tags$angle_to_goal
+predicted_data$x <- shot_tags$x_wyscout
+predicted_data$y <- shot_tags$y_wyscout
+
+predicted_data <- predicted_data[order(predicted_data$probability_of_goal, decreasing = TRUE),]
 
 predicted_data$rank <- 1:nrow(predicted_data)
 
-library(ggplot2)
 
-ggplot(data=predicted_data, aes(x=rank, y=probability_of_goal)) + geom_point(aes(color=is_goal), alpha=1, shape=4, stroke=2)+
-  xlab("Rows Index")+
+
+ggplot(data=predicted_data, aes(x=distance, y=probability_of_goal)) + geom_point(aes(color=angle), alpha=1, shape=4, stroke=2)+
+  xlab("Distance to goal (m)")+
   ylab("Predicted Probability of scoring a goal")
 
-
-
-# print(logit)
-# 
-# odds <- exp(logit)
-# prob <- odds / (1+odds)
-
-
+write.csv(predicted_data, file = "predicted_data.csv")
