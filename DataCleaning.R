@@ -92,8 +92,6 @@ predicted_data <- predicted_data[order(predicted_data$probability_of_goal, decre
 
 predicted_data$rank <- 1:nrow(predicted_data)
 
-
-
 ggplot(data=predicted_data, aes(x=distance, y=probability_of_goal)) + geom_point(aes(color=angle), alpha=1, shape=4, stroke=2)+
   xlab("Distance to goal (m)")+
   ylab("Predicted Probability of scoring a goal")
