@@ -5,7 +5,7 @@ library(ggsoccer)
 library(ggplot2)
 library(tibble)
 
-shot_events <- fromJSON("events/events_European_Championship.json")
+shot_events <- fromJSON("C:/Users/Izan Ahmed/Downloads/DataScienceFinal/xG-Model/events/events_European_Championship.json")
 
 
 players <- fromJSON("players.json") %>% 
@@ -37,6 +37,7 @@ shot_tags <- mutate(shot_tags, is_goal = ifelse((id1==101 | id2==101 | id3==101 
                     is_left = ifelse(id1==401 | id2==401 | id3==401 | id4==401 | id5 == 401 | id6 == 401, 1, 0),
                     is_right = ifelse(id1==402 | id2==402 | id3==402 | id4==402 | id5 == 402 | id6 == 402, 1, 0),
                     is_body = ifelse(id1==403 | id2==403 | id3==403 | id4==403 | id5 == 403 | id6 == 403, 1, 0),
+                    is_counter = ifelse(id1==1901 | id2==1901 | id3==1901 | id4==1901 | id5 == 1901 | id6 == 1901, 1, 0), 
                     is_through = ifelse(preceding_pass == "Smart pass", 1, 0)) %>%
       select(-id1, -id2, -id3, -id4, -id5, -id6)
       
@@ -85,7 +86,7 @@ shot_tags$foot <- NULL
 # shot_tags$playerId <- NULL
 
 
-new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal, is_through)
+new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal, is_through, is_counter)
 
 logistic <- glm(is_goal ~ ., data = new_shots, family = "binomial")
 
@@ -100,6 +101,8 @@ predicted_data$angle <- shot_tags$angle_to_goal
 predicted_data$x <- shot_tags$x_wyscout
 predicted_data$y <- shot_tags$y_wyscout
 predicted_data$is_through <- shot_tags$is_through
+predicted_data$is_counter <- shot_tags$is_counter
+predicted_data$preceding_pass <- shot_tags$preceding_pass
 
 predicted_data <- predicted_data[order(predicted_data$probability_of_goal, decreasing = TRUE),]
 
