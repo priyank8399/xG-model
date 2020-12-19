@@ -5,7 +5,7 @@ library(ggsoccer)
 library(ggplot2)
 library(tibble)
 
-shot_events <- fromJSON("events/events_England.json")
+shot_events <- fromJSON("events/events_France.json")
 
 
 players <- fromJSON("players.json") %>% 
@@ -86,24 +86,16 @@ shot_tags$foot <- NULL
 # shot_tags$playerId <- NULL
 
 
-new_shots <- select(shot_tags, is_goal, is_counter, is_through, is_dominant)
+new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal, is_counter, is_dominant, is_through)
+
+new_shots2 <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal)
 
 
+logistic <- glm(is_goal ~ ., data = new_shots2, family = "binomial")
+logistic2 <- glm(is_goal ~ ., data = new_shots, family = "binomial")
+summary(logistic)
+summary(logistic2)
 
-library(factoextra)
-library(FactoMineR)
-new_shots <- data.frame(lapply(new_shots, as.character))
-
-
-new_shots[new_shots == 1] <- 'Y'
-new_shots[new_shots == 0] <- 'N'
-
-new_shots_mca <- MCA(new_shots, graph = FALSE)
-
-fviz_mca_var(new_shots_mca,  repel = TRUE,
-             ggtheme = theme_minimal())
-
-logistic <- glm(is_goal ~ ., data = new_shots, family = "binomial")
 
 logit <- logistic$coefficients
 
