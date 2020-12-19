@@ -6,28 +6,16 @@ library(ggplot2)
 library(tibble)
 library(pROC)
 
-path <- "C:/Users/Izan Ahmed/DataScienceFinal/xG-model/events/events_England.json"
+shot_events <- fromJSON("events/events_England.json") %>%
+  filter(eventId == 10)
 
-shot_events <- fromJSON(path)
 
-
-players <- fromJSON("C:\Users\Izan Ahmed\Downloads\DataScienceFinal\xG-model\players.json") %>% 
+players <- fromJSON("players.json") %>% 
   select(wyId, foot, lastName)
 
 
-shot_pass_events <- shot_events[FALSE,]
-shot_pass_events <- add_column(shot_pass_events, preceding_pass = NA)
-shot_events <- add_column(shot_events, preceding_pass = NA)
-j = 1
-for(i in 1:nrow(shot_events)) {
-  if(shot_events[i,"eventId"] == 10 && (shot_events[i-1, "eventId"] == 8 | shot_events[i-1, "eventId"] == 1)) {
-    shot_pass_events <- rbind(shot_pass_events, shot_events[i,])
-    shot_pass_events[j, "preceding_pass"] <- shot_events[i-1, "subEventName"]
-    j = j + 1
-  }
-}
 
-shot_tags <- select(shot_pass_events, tags, positions, playerId, matchId, eventSec, eventId, preceding_pass) %>%
+shot_tags <- select(shot_events, tags, positions, playerId, matchId, eventSec, eventId) %>%
   unnest_wider(tags) %>%
   unnest_wider(positions) %>%
   unnest_wider(id, names_sep = "") %>%
@@ -40,12 +28,10 @@ shot_tags <- mutate(shot_tags, is_goal = ifelse((id1==101 | id2==101 | id3==101 
                     is_left = ifelse(id1==401 | id2==401 | id3==401 | id4==401 | id5 == 401 | id6 == 401, 1, 0),
                     is_right = ifelse(id1==402 | id2==402 | id3==402 | id4==402 | id5 == 402 | id6 == 402, 1, 0),
                     is_body = ifelse(id1==403 | id2==403 | id3==403 | id4==403 | id5 == 403 | id6 == 403, 1, 0),
-                    is_counter = ifelse(id1==1901 | id2==1901 | id3==1901 | id4==1901 | id5 == 1901 | id6 == 1901, 1, 0), 
-                    is_through = ifelse(preceding_pass == "Smart pass", 1, 0)) %>%
+                    is_counter = ifelse(id1==1901 | id2==1901 | id3==1901 | id4==1901 | id5 == 1901 | id6 == 1901, 1, 0)) %>%
   select(-id1, -id2, -id3, -id4, -id5, -id6)
 
 shot_tags[is.na(shot_tags)] <- 0
-
 
 shot_tags <- filter(shot_tags, is_blocked == 0) %>%
   select(-is_blocked)
@@ -86,7 +72,7 @@ shot_tags$is_dominant <- ifelse((shot_tags$is_left == 1 & shot_tags$foot == "lef
 shot_tags$foot <- NULL
 
 
-new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal, is_counter, is_dominant, is_through)
+new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal, is_counter)
 
 # new_shots2 <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal)
 # 
@@ -100,21 +86,22 @@ summary(logistic)
 ### TESTING DATASET
 
 
-test_shot_events <- fromJSON("C:/Users/Izan Ahmed/DataScienceFinal/xG-model/events/events_France.json")
+test_shot_events <- fromJSON("events/events_World_Cup.json") %>%
+  filter(eventId == 10)
+# test_shot_pass_events <- test_shot_events[FALSE,]
+# test_shot_pass_events <- add_column(test_shot_pass_events, preceding_pass = NA)
+# test_shot_events <- add_column(test_shot_events, preceding_pass = NA)
+# j = 1
+# 
+# for(i in 2:nrow(test_shot_events)) {
+#   if(test_shot_events[i,"eventId"] == 10 && (test_shot_events[i-1, "eventId"] == 8 | test_shot_events[i-1, "eventId"] == 1)) {
+#     test_shot_pass_events <- rbind(test_shot_pass_events, test_shot_events[i,])
+#     test_shot_pass_events[j, "preceding_pass"] <- test_shot_events[i-1, "subEventName"]
+#     j = j + 1
+#   }
+# }
 
-test_shot_pass_events <- test_shot_events[FALSE,]
-test_shot_pass_events <- add_column(test_shot_pass_events, preceding_pass = NA)
-test_shot_events <- add_column(test_shot_events, preceding_pass = NA)
-j = 1
-for(i in 1:nrow(shot_events)) {
-  if(test_shot_events[i,"eventId"] == 10 && (test_shot_events[i-1, "eventId"] == 8 | test_shot_events[i-1, "eventId"] == 1)) {
-    test_shot_pass_events <- rbind(test_shot_pass_events, test_shot_events[i,])
-    test_shot_pass_events[j, "preceding_pass"] <- test_shot_events[i-1, "subEventName"]
-    j = j + 1
-  }
-}
-
-test_shot_tags <- select(test_shot_pass_events, tags, positions, playerId, matchId, eventSec, eventId, preceding_pass) %>%
+test_shot_tags <- select(test_shot_events, tags, positions, playerId, matchId, eventSec, eventId) %>%
   unnest_wider(tags) %>%
   unnest_wider(positions) %>%
   unnest_wider(id, names_sep = "") %>%
@@ -127,14 +114,13 @@ test_shot_tags <- mutate(test_shot_tags, is_goal = ifelse((id1==101 | id2==101 |
                     is_left = ifelse(id1==401 | id2==401 | id3==401 | id4==401 | id5 == 401 | id6 == 401, 1, 0),
                     is_right = ifelse(id1==402 | id2==402 | id3==402 | id4==402 | id5 == 402 | id6 == 402, 1, 0),
                     is_body = ifelse(id1==403 | id2==403 | id3==403 | id4==403 | id5 == 403 | id6 == 403, 1, 0),
-                    is_counter = ifelse(id1==1901 | id2==1901 | id3==1901 | id4==1901 | id5 == 1901 | id6 == 1901, 1, 0), 
-                    is_through = ifelse(preceding_pass == "Smart pass", 1, 0)) %>%
+                    is_counter = ifelse(id1==1901 | id2==1901 | id3==1901 | id4==1901 | id5 == 1901 | id6 == 1901, 1, 0)) %>%
   select(-id1, -id2, -id3, -id4, -id5, -id6)
 
-test_shot_tags[is.na(shot_tags)] <- 0
+test_shot_tags[is.na(test_shot_tags)] <- 0
 
 
-test_shot_tags <- filter(shot_tags, is_blocked == 0) %>%
+test_shot_tags <- filter(test_shot_tags, is_blocked == 0) %>%
   select(-is_blocked)
 
 
@@ -175,7 +161,7 @@ test_shot_tags$foot <- NULL
 # shot_tags$playerId <- NULL
 
 
-test_new_shots <- select(test_shot_tags, distance_to_goal_center, angle_to_goal, is_goal, is_counter, is_dominant, is_through)
+test_new_shots <- select(test_shot_tags, distance_to_goal_center, angle_to_goal, is_goal, is_counter)
 
 # test_new_shots2 <- select(test_shot_tags, distance_to_goal_center, angle_to_goal, is_goal)
 
