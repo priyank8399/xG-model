@@ -22,7 +22,7 @@ Dataset
 
 ![an image caption: Initial Dataset](firstpic.JPG)
 
-Methods of Collection
+Methods of Collection (1)
 ========================================================
 
 - As we are only interested in shooting events, we decided to select the following variables from the dataset to predict the probability of a goal:
@@ -31,6 +31,16 @@ Methods of Collection
 - 3. The binary variable as to whether or not it was a counter attack
 - 4. The binary variable as to whether or not it was from the dominant foot of the player.
 
+(Initial dataset)
+![an image caption: Initial Dataset](firstpic.JPG)
+
+Methods of Collection (2)
+========================================================
+
+- For distance, and angle to the goal, we used the position variable to extract the coordinates and later used trigonometric laws to compute each of them.
+- For the counter attack or not and taken from dominant foot or not, we had to search through the tags variable to see if the specific tag we needed was present or not. Based on their presence, we made them into binary variables.
+
+(Final dataset)
 ![an image caption: Initial Dataset](firstpic.JPG)
 
 Analytic Methods
