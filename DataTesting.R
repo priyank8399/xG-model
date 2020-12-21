@@ -73,34 +73,21 @@ shot_tags$foot <- NULL
 
 
 # Logistic Regression Model
-new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal)
+#new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal)
+#new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal, is_counter)
+new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal, is_counter, is_dominant)
 
-# new_shots2 <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal)
-# 
-# 
-# logistic2 <- glm(is_goal ~ ., data = new_shots2, family = "binomial")
 logistic <- glm(is_goal ~ ., data = new_shots, family = "binomial")
 summary(logistic)
-# summary(logistic2)
-
-## --------------------------------------------------------------------------####
-### TESTING DATASET
 
 
-test_shot_events <- fromJSON("events/events_Germany.json") %>%
+## ----------------------------TESTING DATASET------------------------------####
+
+
+
+test_shot_events <- fromJSON("events/events_Italy.json") %>%
   filter(eventId == 10)
-# test_shot_pass_events <- test_shot_events[FALSE,]
-# test_shot_pass_events <- add_column(test_shot_pass_events, preceding_pass = NA)
-# test_shot_events <- add_column(test_shot_events, preceding_pass = NA)
-# j = 1
-# 
-# for(i in 2:nrow(test_shot_events)) {
-#   if(test_shot_events[i,"eventId"] == 10 && (test_shot_events[i-1, "eventId"] == 8 | test_shot_events[i-1, "eventId"] == 1)) {
-#     test_shot_pass_events <- rbind(test_shot_pass_events, test_shot_events[i,])
-#     test_shot_pass_events[j, "preceding_pass"] <- test_shot_events[i-1, "subEventName"]
-#     j = j + 1
-#   }
-# }
+
 
 test_shot_tags <- select(test_shot_events, tags, positions, playerId, matchId, eventSec, eventId) %>%
   unnest_wider(tags) %>%
@@ -162,7 +149,7 @@ test_shot_tags$foot <- NULL
 # shot_tags$playerId <- NULL
 
 
-test_new_shots <- select(test_shot_tags, distance_to_goal_center, angle_to_goal, is_goal)
+test_new_shots <- select(test_shot_tags, distance_to_goal_center, angle_to_goal, is_goal, is_counter, is_dominant)
 
 
 # ROC & AUC
@@ -170,7 +157,7 @@ test_new_shots$prediction <- predict(logistic, test_new_shots, type="response")
 
 g <- roc(is_goal ~ prediction, data = test_new_shots)
 
-plot(g)
+plot(g, main="ROC plot - Bundesliga (Germany)")
 
 auc(g)
 
