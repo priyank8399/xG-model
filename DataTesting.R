@@ -6,6 +6,7 @@ library(ggplot2)
 library(tibble)
 library(pROC)
 
+# Read in dataset
 shot_events <- fromJSON("events/events_England.json") %>%
   filter(eventId == 10)
 
@@ -13,8 +14,7 @@ shot_events <- fromJSON("events/events_England.json") %>%
 players <- fromJSON("players.json") %>% 
   select(wyId, foot, lastName)
 
-
-
+# Data Cleaning
 shot_tags <- select(shot_events, tags, positions, playerId, matchId, eventSec, eventId) %>%
   unnest_wider(tags) %>%
   unnest_wider(positions) %>%
@@ -66,18 +66,19 @@ shot_tags$angle_to_goal <- acos((shot_tags$distance_to_post2^2 +
 # Come back to this to figure out why we have a NaN
 shot_tags <- filter(shot_tags, !is.nan(angle_to_goal))
 
+
 shot_tags$is_dominant <- ifelse((shot_tags$is_left == 1 & shot_tags$foot == "left") | 
                                   (shot_tags$is_right == 1 & shot_tags$foot == "right"), 1, 0)
-
 shot_tags$foot <- NULL
 
 
-new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal, is_counter)
+# Logistic Regression Model
+new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal)
 
 # new_shots2 <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal)
 # 
 # 
-# logistic <- glm(is_goal ~ ., data = new_shots2, family = "binomial")
+# logistic2 <- glm(is_goal ~ ., data = new_shots2, family = "binomial")
 logistic <- glm(is_goal ~ ., data = new_shots, family = "binomial")
 summary(logistic)
 # summary(logistic2)
@@ -86,7 +87,7 @@ summary(logistic)
 ### TESTING DATASET
 
 
-test_shot_events <- fromJSON("events/events_World_Cup.json") %>%
+test_shot_events <- fromJSON("events/events_Germany.json") %>%
   filter(eventId == 10)
 # test_shot_pass_events <- test_shot_events[FALSE,]
 # test_shot_pass_events <- add_column(test_shot_pass_events, preceding_pass = NA)
@@ -161,10 +162,10 @@ test_shot_tags$foot <- NULL
 # shot_tags$playerId <- NULL
 
 
-test_new_shots <- select(test_shot_tags, distance_to_goal_center, angle_to_goal, is_goal, is_counter)
+test_new_shots <- select(test_shot_tags, distance_to_goal_center, angle_to_goal, is_goal)
 
-# test_new_shots2 <- select(test_shot_tags, distance_to_goal_center, angle_to_goal, is_goal)
 
+# ROC & AUC
 test_new_shots$prediction <- predict(logistic, test_new_shots, type="response")
 
 g <- roc(is_goal ~ prediction, data = test_new_shots)
@@ -172,10 +173,7 @@ g <- roc(is_goal ~ prediction, data = test_new_shots)
 plot(g)
 
 auc(g)
-# logistic <- glm(is_goal ~ ., data = new_shots2, family = "binomial")
-# logistic2 <- glm(is_goal ~ ., data = new_shots, family = "binomial")
-# summary(logistic)
-# summary(logistic2)
+
 
 # 
 # logit <- logistic$coefficients

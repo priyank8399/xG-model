@@ -5,26 +5,15 @@ library(ggsoccer)
 library(ggplot2)
 library(tibble)
 
-shot_events <- fromJSON("events/events_France.json")
+shot_events <- fromJSON("events/events_England.json") %>%
+  filter(eventId == 10)
 
 
 players <- fromJSON("players.json") %>% 
   select(wyId, foot, lastName)
 
-
-shot_pass_events <- shot_events[FALSE,]
-shot_pass_events <- add_column(shot_pass_events, preceding_pass = NA)
-shot_events <- add_column(shot_events, preceding_pass = NA)
-j = 1
-for(i in 1:nrow(shot_events)) {
-   if(shot_events[i,"eventId"] == 10 && (shot_events[i-1, "eventId"] == 8 | shot_events[i-1, "eventId"] == 1)) {
-     shot_pass_events <- rbind(shot_pass_events, shot_events[i,])
-     shot_pass_events[j, "preceding_pass"] <- shot_events[i-1, "subEventName"]
-     j = j + 1
-   }
-}
      
-shot_tags <- select(shot_pass_events, tags, positions, playerId, matchId, eventSec, eventId, preceding_pass) %>%
+shot_tags <- select(shot_events, tags, positions, playerId, matchId, eventSec, eventId) %>%
   unnest_wider(tags) %>%
   unnest_wider(positions) %>%
   unnest_wider(id, names_sep = "") %>%
@@ -37,8 +26,7 @@ shot_tags <- mutate(shot_tags, is_goal = ifelse((id1==101 | id2==101 | id3==101 
                     is_left = ifelse(id1==401 | id2==401 | id3==401 | id4==401 | id5 == 401 | id6 == 401, 1, 0),
                     is_right = ifelse(id1==402 | id2==402 | id3==402 | id4==402 | id5 == 402 | id6 == 402, 1, 0),
                     is_body = ifelse(id1==403 | id2==403 | id3==403 | id4==403 | id5 == 403 | id6 == 403, 1, 0),
-                    is_counter = ifelse(id1==1901 | id2==1901 | id3==1901 | id4==1901 | id5 == 1901 | id6 == 1901, 1, 0), 
-                    is_through = ifelse(preceding_pass == "Smart pass", 1, 0)) %>%
+                    is_counter = ifelse(id1==1901 | id2==1901 | id3==1901 | id4==1901 | id5 == 1901 | id6 == 1901, 1, 0)) %>%
       select(-id1, -id2, -id3, -id4, -id5, -id6)
       
       shot_tags[is.na(shot_tags)] <- 0
@@ -86,13 +74,11 @@ shot_tags$foot <- NULL
 # shot_tags$playerId <- NULL
 
 
-new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal, is_counter, is_dominant, is_through)
-
-new_shots2 <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal)
+new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal, is_counter, is_dominant)
 
 
-logistic <- glm(is_goal ~ ., data = new_shots2, family = "binomial")
-logistic2 <- glm(is_goal ~ ., data = new_shots, family = "binomial")
+logistic <- glm(is_goal ~ ., data = new_shots, family = "binomial")
+
 summary(logistic)
 summary(logistic2)
 
@@ -107,9 +93,7 @@ predicted_data$eventSec <- shot_tags$eventSec
 predicted_data$angle <- shot_tags$angle_to_goal
 predicted_data$x <- shot_tags$x_wyscout
 predicted_data$y <- shot_tags$y_wyscout
-predicted_data$is_through <- shot_tags$is_through
 predicted_data$is_counter <- shot_tags$is_counter
-predicted_data$preceding_pass <- shot_tags$preceding_pass
 
 predicted_data <- predicted_data[order(predicted_data$probability_of_goal, decreasing = TRUE),]
 
@@ -119,4 +103,4 @@ ggplot(data=predicted_data, aes(x=distance, y=probability_of_goal)) + geom_point
   xlab("Distance to goal (m)")+
   ylab("Predicted Probability of scoring a goal")
 
-write.csv(predicted_data, file = "predicted_data.csv")
+write.csv(predicted_data, file = "predicted_data_model3.csv")
