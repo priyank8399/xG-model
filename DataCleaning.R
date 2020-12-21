@@ -13,7 +13,6 @@ players <- fromJSON("players.json") %>%
 
 
 
-
 shot_tags <- select(shot_events, tags, positions, playerId, matchId, eventSec, eventId) %>%
   unnest_wider(tags) %>%
   unnest_wider(positions) %>%
@@ -73,7 +72,7 @@ shot_tags$foot <- NULL
 # shot_tags$playerId <- NULL
 
 
-new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal)
+new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal, is_counter)
 
 logistic <- glm(is_goal ~ ., data = new_shots, family = "binomial")
 
@@ -81,19 +80,20 @@ logit <- logistic$coefficients
 
 predicted_data <- data.frame(probability_of_goal=logistic$fitted.values, is_goal=new_shots$is_goal[1:6178])
 predicted_data$distance <- new_shots$distance_to_goal_center
-predicted_data$matchId <- shot_tags$matchId
-predicted_data$lastName <- shot_tags$lastName
-predicted_data$eventSec <- shot_tags$eventSec
+#predicted_data$matchId <- shot_tags$matchId
+#predicted_data$lastName <- shot_tags$lastName
+#predicted_data$eventSec <- shot_tags$eventSec
 predicted_data$angle <- shot_tags$angle_to_goal
-predicted_data$x <- shot_tags$x_wyscout
-predicted_data$y <- shot_tags$y_wyscout
+predicted_data$is_counter <- shot_tags$is_counter
+#predicted_data$x <- shot_tags$x_wyscout
+#predicted_data$y <- shot_tags$y_wyscout
 
-predicted_data <- predicted_data[order(predicted_data$probability_of_goal, decreasing = TRUE),]
+#predicted_data <- predicted_data[order(predicted_data$probability_of_goal, decreasing = TRUE),]
 
-predicted_data$rank <- 1:nrow(predicted_data)
+#predicted_data$rank <- 1:nrow(predicted_data)
 
 ggplot(data=predicted_data, aes(x=distance, y=probability_of_goal)) + geom_point(aes(color=angle), alpha=1, shape=4, stroke=2)+
   xlab("Distance to goal (m)")+
   ylab("Predicted Probability of scoring a goal")
 
-write.csv(predicted_data, file = "predicted_data.csv")
+write.csv(predicted_data, file = "predicted_data_model2.csv")

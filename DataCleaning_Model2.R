@@ -80,7 +80,7 @@ new_shots <- select(shot_tags, distance_to_goal_center, angle_to_goal, is_goal, 
 logistic <- glm(is_goal ~ ., data = new_shots, family = "binomial")
 
 summary(logistic)
-summary(logistic2)
+
 
 
 logit <- logistic$coefficients
