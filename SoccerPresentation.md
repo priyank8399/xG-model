@@ -98,47 +98,16 @@ Results (5)
 
 ![an image caption](ROC-germany.png)
 
-- With an AUC (Area under Curve) of ######
-
-Results (6)
-========================================================
-
-- 1.8: ROC Curve when compared to Serie A (Italy)
-
-![an image caption](ROC-germany.png)
-
-- With an AUC (Area under Curve) of ######
-
-Results (7)
-========================================================
-
-- 1.9: ROC Curve when compared to World Cup
-
-![an image caption](ROC-germany.png)
-
-- With an AUC (Area under Curve) of ######
+- With an AUC (Area under Curve) of 0.7387 which is reasonably accurate.
 
 Discussion
 ========================================================
 
-1.1: 
+- Our model achieved an average AUC of 0.7395, which is much better than random prediction, but there is still work to be done.
 
-1.2:
+- Limited data available for testing, more detailed datasets can allow us to create more sophisticated models.
 
-1.3:
+- We hope this model can be built on by other sports analytic researchers.
 
-1.4:
 
-1.5:
-
-1.6:
-
-1.7:
-
-1.8:
-
-1.9:
-
-Limitations: 
-
-Conclusion: 
+ 
