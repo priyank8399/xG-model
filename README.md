@@ -1,6 +1,10 @@
 # xG-model
 An expected goal probability model created with logistic regression
 
+# Research Paper
+See link below:
+https://drive.google.com/file/d/1YX0ReZc9VB6Jv9V_6E41g1fq8boZzrUS/view?usp=sharing
+
 
 # Dataset
 The dataset has been provided by Wyscout, which can be found here: https://figshare.com/collections/Soccer_match_event_dataset/4415000
